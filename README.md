@@ -14,7 +14,7 @@ A topic that can easily make anyone's mind wobble. Here I try to make them stick
 
 Design patterns are solutions to recurring problems; **guidelines on how to tackle certain problems**. They are not classes, packages or libraries that you can plug into your application and wait for the magic to happen. These are, rather, guidelines on how to tackle certain problems in certain situations. 
 
-> Design patterns solutions to recurring problems; guidelines on how to tackle certain problems
+> Design patterns are solutions to recurring problems; guidelines on how to tackle certain problems
 
 Wikipedia describes them as
 
@@ -26,13 +26,14 @@ Wikipedia describes them as
 - Do not try to force them; bad things are supposed to happen, if done so. Keep in mind that design patterns are solutions **to** problems, not solutions **finding** problems; so don't overthink.
 - If used in a correct place in a correct manner, they can prove to be a savior; or else they can result in a horrible mess of a code.
 
+> Also note that the code samples below are in PHP-7, however this shouldn't stop you because the concepts are same anyways. Plus the **support for other languages is underway**.
+
 Types of Design Patterns
 -----------------
 
 * [Creational](#creational-design-patterns)
 * [Structural](#structural-design-patterns)
 * [Behavioral](#behavioral-design-patterns)
-
 
 Creational Design Patterns
 ==========================
@@ -87,7 +88,7 @@ class WoodenDoor implements Door {
         return $this->height;
     }
 }
-````
+```
 Then we have our door factory that makes the door and returns it
 ```php
 class DoorFactory {
@@ -144,7 +145,7 @@ class CommunityExecutive implements Interviewer {
 Now let us create our `HiringManager`
 
 ```php
- class HiringManager {
+abstract class HiringManager {
     
     // Factory method
     abstract public function makeInterviewer() : Interviewer;
@@ -153,8 +154,8 @@ Now let us create our `HiringManager`
         $interviewer = $this->makeInterviewer();
         $interviewer->askQuestions();
     }
- }
- ```
+}
+```
 Now any child can extend it and provide the required interviewer
 ```php
 class DevelopmentManager extends HiringManager {
@@ -236,7 +237,7 @@ class Carpenter implements DoorFittingExpert {
 }
 ```
 
-Now we have our abstract factory that would let us make family of related objects i.e. wooden door would create a wooden door fitting expert and iron door would create an iron door fitting expert
+Now we have our abstract factory that would let us make family of related objects i.e. wooden door factory would create a wooden door and wooden door fitting expert and iron door factory would create an iron door and iron door fitting expert
 ```php
 interface DoorFactory {
     public function makeDoor() : Door;
@@ -313,16 +314,37 @@ As you can see; the number of constructor parameters can quickly get out of hand
 
 **Programmatic Example**
 
-The sane alternative is to use the builder pattern.
+The sane alternative is to use the builder pattern. First of all we have our burger that we want to make
 
 ```php
-class BurgerBuilder {
+class Burger {
     protected $size;
 
-    protected $cheeze = true;
+    protected $cheese = false;
     protected $pepperoni = false;
     protected $lettuce = false;
     protected $tomato = false;
+    
+    public function __construct(BurgerBuilder $builder) {
+        $this->size = $builder->size;
+        $this->cheese = $builder->cheese;
+        $this->pepperoni = $builder->pepperoni;
+        $this->lettuce = $builder->lettuce;
+        $this->tomato = $builder->tomato;
+    }
+}
+```
+
+And then we have the builder
+
+```php
+class BurgerBuilder {
+    public $size;
+
+    public $cheese = false;
+    public $pepperoni = false;
+    public $lettuce = false;
+    public $tomato = false;
 
     public function __construct(int $size) {
         $this->size = $size;
@@ -338,14 +360,18 @@ class BurgerBuilder {
         return $this;
     }
     
+    public function addCheese() {
+        $this->cheese = true;
+        return $this;
+    }
+    
     public function addTomato() {
         $this->tomato = true;
         return $this;
     }
     
     public function build() : Burger {
-        // creational logic
-        return $burger;
+        return new Burger($this);
     }
 }
 ```
@@ -353,9 +379,9 @@ And then it can be used as:
 
 ```php
 $burger = (new BurgerBuilder(14))
-                    ->addPepperoni();
-                    ->addLettuce();
-                    ->addTomato();
+                    ->addPepperoni()
+                    ->addLettuce()
+                    ->addTomato()
                     ->build();
 ```
 
@@ -451,16 +477,19 @@ final class President {
     }
     
     public static function getInstance() : President {
-        if ($this->instance) {
-            return $this->instance;
+        if (!self::$instance) {
+            self::$instance = new self();
         }
         
-        $this->instance = new President();
-        return $this->instance;
+        return self::$instance;
     }
     
     private function __clone() {
         // Disable cloning
+    }
+    
+    private function __wakeup() {
+        // Disable unserialize
     }
 }
 ```
@@ -880,6 +909,7 @@ Wikipedia says
 > A facade is an object that provides a simplified interface to a larger body of code, such as a class library.
 
 **Programmatic Example**
+
 Taking our computer example from above. Here we have the computer class
 
 ```php
@@ -942,7 +972,7 @@ Now to use the facade
 ```php
 $computer = new ComputerFacade(new Computer());
 $computer->turnOn(); // Ouch! Beep beep! Loading.. Ready to be used!
-$compuer->turnOff(); // Bup bup buzzz! Haah! Zzzzz
+$computer->turnOff(); // Bup bup buzzz! Haah! Zzzzz
 ```
 
 🍃 Flyweight
@@ -958,6 +988,7 @@ Wikipedia says
 > In computer programming, flyweight is a software design pattern. A flyweight is an object that minimizes memory use by sharing as much data as possible with other similar objects; it is a way to use objects in large numbers when a simple repeated representation would use an unacceptable amount of memory.
 
 **Programmatic example**
+
 Translating our tea example from above. First of all we have tea types and tea maker
 
 ```php
@@ -1006,7 +1037,8 @@ class TeaShop {
 And it can be used as below
 
 ```php
-$shop = new TeaShop();
+$teaMaker = new TeaMaker();
+$shop = new TeaShop($teaMaker);
 
 $shop->takeOrder('less sugar', 1);
 $shop->takeOrder('more milk', 2);
@@ -1030,6 +1062,7 @@ Wikipedia says
 > A proxy, in its most general form, is a class functioning as an interface to something else. A proxy is a wrapper or agent object that is being called by the client to access the real serving object behind the scenes. Use of the proxy can simply be forwarding to the real object, or can provide additional logic. In the proxy extra functionality can be provided, for example caching when operations on the real object are resource intensive, or checking preconditions before operations on the real object are invoked.
 
 **Programmatic Example**
+
 Taking our security door example from above. Firstly we have the door interface and an implementation of door
 
 ```php
@@ -1066,7 +1099,7 @@ class Security {
     }
 
     public function authenticate($password) {
-        return $password === '$ecr@t'
+        return $password === '$ecr@t';
     }
 
     public function close() {
@@ -1080,7 +1113,7 @@ $door = new Security(new LabDoor());
 $door->open('invalid'); // Big no! It ain't possible.
 
 $door->open('$ecr@t'); // Opening lab door
-$door->close('Closing lab door');
+$door->close(); // Closing lab door
 ```
 Yet another example would be some sort of data-mapper implementation. For example, I recently made an ODM (Object Data Mapper) for MongoDB using this pattern where I wrote a proxy around mongo classes while utilizing the magic method `__call()`. All the method calls were proxied to the original mongo class and result retrieved was returned as it is but in case of `find` or `findOne` data was mapped to the required class objects and the object was returned instead of `Cursor`.
 
@@ -1108,7 +1141,7 @@ Wikipedia says
 -----------------------
 
 Real world example
-> For example, you have three payment methods (`A`, `B` and `C`) setup in your account; each having a different amount in it. `A` has 100 USD, `B` has 300 USD and C having 1000 USD and the preference for payments is chosen as `A` then `B` then `C`. You try to purchase something that is worth 210 USD. Using Chain of Responsibility, first of all account `A` will be checked if it can make the purchase, if yes purchase will be made and the chain will be broken. If not, request will move forward to account `B` checking for amount if yes chain will be broken otherwise the request will keep forwarding till it finds the suitable handler. Here `A`, `B` and `C` are links of the chain and the whole phenomenon is Chain of Responsibility.
+> For example, you have three payment methods (`A`, `B` and `C`) setup in your account; each having a different amount in it. `A` has 100 USD, `B` has 300 USD and `C` having 1000 USD and the preference for payments is chosen as `A` then `B` then `C`. You try to purchase something that is worth 210 USD. Using Chain of Responsibility, first of all account `A` will be checked if it can make the purchase, if yes purchase will be made and the chain will be broken. If not, request will move forward to account `B` checking for amount if yes chain will be broken otherwise the request will keep forwarding till it finds the suitable handler. Here `A`, `B` and `C` are links of the chain and the whole phenomenon is Chain of Responsibility.
 
 In plain words
 > It helps building a chain of objects. Request enters from one end and keeps going from object to object till it finds the suitable handler.
@@ -1131,7 +1164,7 @@ abstract class Account {
     
     public function pay(float $amountToPay) {
         if ($this->canPay($amountToPay)) {
-            echo sprintf('Paid %s using %s' . PHP_EOL, $amount, get_called_class());
+            echo sprintf('Paid %s using %s' . PHP_EOL, $amountToPay, get_called_class());
         } else if ($this->successor) {
             echo sprintf('Cannot pay using %s. Proceeding ..' . PHP_EOL, get_called_class());
             $this->successor->pay($amountToPay);
@@ -1141,7 +1174,7 @@ abstract class Account {
     }
     
     public function canPay($amount) : bool {
-        return $this->balance <= $amount;
+        return $this->balance >= $amount;
     }
 }
 
@@ -1149,7 +1182,7 @@ class Bank extends Account {
     protected $balance;
 
     public function __construct(float $balance) {
-        $this->$balance = $balance;
+        $this->balance = $balance;
     }
 }
 
@@ -1157,7 +1190,7 @@ class Paypal extends Account {
     protected $balance;
 
     public function __construct(float $balance) {
-        $this->$balance = $balance;
+        $this->balance = $balance;
     }
 }
 
@@ -1165,7 +1198,7 @@ class Bitcoin extends Account {
     protected $balance;
 
     public function __construct(float $balance) {
-        $this->$balance = $balance;
+        $this->balance = $balance;
     }
 }
 ```
@@ -1288,12 +1321,12 @@ Finally let's see how we can use it in our client
 ```php
 $bulb = new Bulb();
 
-$turnOn = new TurnOnCommand($bulb);
-$turnOff = new TurnOffCommand($bulb);
+$turnOn = new TurnOn($bulb);
+$turnOff = new TurnOff($bulb);
 
 $remote = new RemoteControl();
-$remoteControl->submit($turnOn); // Bulb has been lit!
-$remoteControl->submit($turnOff); // Darkness!
+$remote->submit($turnOn); // Bulb has been lit!
+$remote->submit($turnOff); // Darkness!
 ```
 
 Command pattern can also be used to implement a transaction based system. Where you keep maintaining the history of commands as soon as you execute them. If the final command is successfully executed, all good otherwise just iterate through the history and keep executing the `undo` on all the executed commands. 
@@ -1311,6 +1344,7 @@ Wikipedia says
 > In object-oriented programming, the iterator pattern is a design pattern in which an iterator is used to traverse a container and access the container's elements. The iterator pattern decouples algorithms from containers; in some cases, algorithms are necessarily container-specific and thus cannot be decoupled.
 
 **Programmatic example**
+
 In PHP it is quite easy to implement using SPL (Standard PHP Library). Translating our radio stations example from above. First of all we have `RadioStation`
 
 ```php
@@ -1343,7 +1377,7 @@ class StationList implements Countable, Iterator {
         $this->stations[] = $station;
     }
     
-    public funtion removeStation(RadioStation $toRemove) {
+    public function removeStation(RadioStation $toRemove) {
         $toRemoveFrequency = $toRemove->getFrequency();
         $this->stations = array_filter($this->stations, function (RadioStation $station) use ($toRemoveFrequency) {
             return $station->getFrequency() !== $toRemoveFrequency;
@@ -1572,7 +1606,7 @@ class JobSeeker implements Observer {
         $this->name = $name;
     }
 
-    public function onJobPosted(JobPosting $job) {
+    public function onJobPosted(JobPost $job) {
         // Do something with the job posting
         echo 'Hi ' . $this->name . '! New job posted: '. $job->getTitle();
     }
@@ -1607,8 +1641,8 @@ $kaneDoe = new JobSeeker('Kane Doe');
 
 // Create publisher and attach subscribers
 $jobPostings = new JobPostings();
-$jobPostings->attatch($johnDoe);
-$jobPostings->attatch($janeDoe);
+$jobPostings->attach($johnDoe);
+$jobPostings->attach($janeDoe);
 
 // Add a new job and see if subscribers get notified
 $jobPostings->addJob(new JobPost('Software Engineer'));
@@ -1621,10 +1655,10 @@ $jobPostings->addJob(new JobPost('Software Engineer'));
 🏃 Visitor
 -------
 Real world example
-> Consider someone visiting Dubai. They just need a way (i.e. visa) to enter Dubai. After arrival, they can come and visit any place in Dubai on their own without having to ask for permission or to do some leg work in order to visit any place here; just let them know of a place and they can visit it. Visitor pattern let's you do just that, it helps you add places to visit so that they can visit as much as they can without having to do any legwork.
+> Consider someone visiting Dubai. They just need a way (i.e. visa) to enter Dubai. After arrival, they can come and visit any place in Dubai on their own without having to ask for permission or to do some leg work in order to visit any place here; just let them know of a place and they can visit it. Visitor pattern lets you do just that, it helps you add places to visit so that they can visit as much as they can without having to do any legwork.
 
 In plain words
-> Visitor pattern let's you add further operations to objects without having to modify them.
+> Visitor pattern lets you add further operations to objects without having to modify them.
     
 Wikipedia says
 > In object-oriented programming and software engineering, the visitor design pattern is a way of separating an algorithm from an object structure on which it operates. A practical result of this separation is the ability to add new operations to existing object structures without modifying those structures. It is one way to follow the open/closed principle.
@@ -1807,18 +1841,18 @@ $sorter->sort($dataset); // Output : Sorting using quick sort
 💢 State
 -----
 Real world example
-> Imagine you are using some drawing application, you choose the paint brush to draw. Now the brush changes it's behavior based on the selected color i.e. if you have chosen red color it will draw in red, if blue then it will be in blue etc.  
+> Imagine you are using some drawing application, you choose the paint brush to draw. Now the brush changes its behavior based on the selected color i.e. if you have chosen red color it will draw in red, if blue then it will be in blue etc.  
 
 In plain words
 > It lets you change the behavior of a class when the state changes.
 
 Wikipedia says
 > The state pattern is a behavioral software design pattern that implements a state machine in an object-oriented way. With the state pattern, a state machine is implemented by implementing each individual state as a derived class of the state pattern interface, and implementing state transitions by invoking methods defined by the pattern's superclass.
-> The state pattern can be interpreted as a strategy pattern which is able to switch the current strategy through invocations of methods defined in the pattern's interface
+> The state pattern can be interpreted as a strategy pattern which is able to switch the current strategy through invocations of methods defined in the pattern's interface.
 
 **Programmatic example**
 
-Let's take an example of text editor, it let's you change the state of text that is typed i.e. if you have selected bold, it starts writing in bold, if italic then in italics etc.
+Let's take an example of text editor, it lets you change the state of text that is typed i.e. if you have selected bold, it starts writing in bold, if italic then in italics etc.
 
 First of all we have our state interface and some state implementations
 
@@ -1899,7 +1933,7 @@ Real world example
 > The order of these steps could never be changed i.e. you can't build the roof before building the walls etc but each of the steps could be modified for example walls can be made of wood or polyester or stone.
   
 In plain words
-> Template method defines the skeleton of how certain algorithm could be performed but defers the implementation of those steps to the children classes.
+> Template method defines the skeleton of how a certain algorithm could be performed, but defers the implementation of those steps to the children classes.
  
 Wikipedia says
 > In software engineering, the template method pattern is a behavioral design pattern that defines the program skeleton of an algorithm in an operation, deferring some steps to subclasses. It lets one redefine certain steps of an algorithm without changing the algorithm's structure.
@@ -1922,7 +1956,7 @@ abstract class Builder {
     
     public abstract function test();
     public abstract function lint();
-    public abstract function build();
+    public abstract function assemble();
     public abstract function deploy();
 }
 ```
@@ -1997,7 +2031,7 @@ And that about wraps it up. I will continue to improve this, so you might want t
 - Report issues
 - Open pull request with improvements
 - Spread the word
-- Reach out to me directly at kamranahmed.se@gmail.com or [@kamranahmedse](http://twitter.com/kamranahmedse)
+- Reach out to me directly at kamranahmed.se@gmail.com or on twitter [@kamranahmedse](http://twitter.com/kamranahmedse)
 
 ## License
-MIT © [Kamran Ahmed](https://kamranahmed.info)
+MIT © [Kamran Ahmed](http://kamranahmed.info)
